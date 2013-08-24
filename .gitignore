@@ -3,4 +3,5 @@
 *.log
 *.gem
 Makefile
+.RUBYARCHDIR.time
 

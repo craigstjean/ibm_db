@@ -111,7 +111,7 @@ end
 
 alias :libpathflag0 :libpathflag
 def libpathflag(libpath)
-  libpathflag0 + case Config::CONFIG["arch"]
+  libpathflag0 + case RbConfig::CONFIG["arch"]
     when /solaris2/
       libpath[0..-2].map {|path| " -R#{path}"}.join
     when /linux/
