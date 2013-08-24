@@ -100,6 +100,13 @@ static VALUE id_new;
 static VALUE id_keys;
 static VALUE id_id2name;
 
+char *ruby_ibm_db_str2cstr(VALUE string, long *len)
+{
+	VALUE str = StringValue(string);
+	*len = RSTRING_LEN(str);
+	return RSTRING_PTR(str);
+}
+
 #define RUBY_FE(function) \
   rb_define_singleton_method(mDB, #function, ibm_db_##function, -1);
 #define RUBY_FALIAS(alias, function) \
@@ -2896,14 +2903,14 @@ VALUE ruby_ibm_db_createDb_helper(VALUE connection, VALUE dbName, VALUE codeSet,
         create_db_args->mode     =  NULL;
 	  }
 #else
-      create_db_args->dbName     = (SQLCHAR*)rb_str2cstr(dbName, &(create_db_args->dbName_string_len));
+      create_db_args->dbName     = (SQLCHAR*)ruby_ibm_db_str2cstr(dbName, &(create_db_args->dbName_string_len));
 	  if(!NIL_P(codeSet)){
-        create_db_args->codeSet  = (SQLCHAR*)rb_str2cstr(codeSet, &(create_db_args->codeSet_string_len));
+        create_db_args->codeSet  = (SQLCHAR*)ruby_ibm_db_str2cstr(codeSet, &(create_db_args->codeSet_string_len));
 	  } else {
         create_db_args->codeSet  = NULL;
 	  }
 	  if(!NIL_P(mode)) {
-        create_db_args->mode     = (SQLCHAR*)rb_str2cstr(mode, &(create_db_args->mode_string_len));
+        create_db_args->mode     = (SQLCHAR*)ruby_ibm_db_str2cstr(mode, &(create_db_args->mode_string_len));
 	  } else {
         create_db_args->mode     = NULL;
 	  }
@@ -3035,7 +3042,7 @@ VALUE ruby_ibm_db_dropDb_helper(VALUE connection, VALUE dbName) {
 	  drop_db_args->dbName     =  (SQLWCHAR*)RSTRING_PTR(dbName_utf16);
       drop_db_args->dbName_string_len =  RSTRING_LEN(dbName_utf16)/sizeof(SQLWCHAR); /*RSTRING_LEN returns number of bytes*/
 #else
-      drop_db_args->dbName     =  (SQLCHAR*)rb_str2cstr(dbName, &(drop_db_args->dbName_string_len));
+      drop_db_args->dbName     =  (SQLCHAR*)ruby_ibm_db_str2cstr(dbName, &(drop_db_args->dbName_string_len));
 #endif
 	} else {
 		rb_warn("Invalid Parameter: Database Name cannot be nil");
@@ -3602,7 +3609,7 @@ VALUE ibm_db_bind_param(int argc, VALUE *argv, VALUE self)
   varname     = RSTRING_PTR(r_varname);
   varname_len = RSTRING_LEN(r_varname);
 #else
-  varname = rb_str2cstr(r_varname, &varname_len);
+  varname = ruby_ibm_db_str2cstr(r_varname, &varname_len);
 #endif
 
   if (!NIL_P(r_param_type)) {
@@ -5584,7 +5591,7 @@ static int _ruby_ibm_db_do_prepare(conn_handle *conn_res, VALUE stmt, stmt_handl
     prepare_args->stmt_string      =  (SQLWCHAR*) RSTRING_PTR(stmt_utf16);
     prepare_args->stmt_string_len  =  RSTRING_LEN(stmt_utf16)/sizeof(SQLWCHAR);
 #else
-    prepare_args->stmt_string      = (SQLCHAR*)rb_str2cstr(stmt, &(prepare_args->stmt_string_len));
+    prepare_args->stmt_string      = (SQLCHAR*)ruby_ibm_db_str2cstr(stmt, &(prepare_args->stmt_string_len));
 #endif
   } else {
     rb_warn("Supplied parameter is invalid");
@@ -5713,7 +5720,7 @@ VALUE ibm_db_exec(int argc, VALUE *argv, VALUE self)
       exec_direct_args->stmt_string     =  (SQLWCHAR*)RSTRING_PTR(stmt_utf16);
       exec_direct_args->stmt_string_len =  RSTRING_LEN(stmt_utf16)/sizeof(SQLWCHAR); /*RSTRING_LEN returns number of bytes*/
 #else
-      exec_direct_args->stmt_string = (SQLCHAR*)rb_str2cstr(stmt, &(exec_direct_args->stmt_string_len));
+      exec_direct_args->stmt_string = (SQLCHAR*)ruby_ibm_db_str2cstr(stmt, &(exec_direct_args->stmt_string_len));
 #endif
 
     } else {
@@ -6049,7 +6056,7 @@ static int _ruby_ibm_db_bind_parameter_helper(stmt_handle *stmt_res, param_node 
       tmp_str      =  (SQLCHAR *) RSTRING_PTR(tmpBuff);
       curr->ivalue =  RSTRING_LEN(tmpBuff);
 #else
-      tmp_str = (SQLCHAR *) rb_str2cstr( rb_big2str(*bind_data,10), (long*)&curr->ivalue );
+      tmp_str = (SQLCHAR *) ruby_ibm_db_str2cstr( rb_big2str(*bind_data,10), (long*)&curr->ivalue );
 #endif
 
       curr->svalue = (SQLCHAR *) ALLOC_N(char, curr->ivalue+1);
@@ -6141,7 +6148,7 @@ static int _ruby_ibm_db_bind_parameter_helper(stmt_handle *stmt_res, param_node 
        origlen = curr->ivalue = RSTRING_LEN( bindData_utf16 );
      } 
 #else
-      tmp_str = (SQLCHAR *) rb_str2cstr( *bind_data, (long*) &curr->ivalue );
+      tmp_str = (SQLCHAR *) ruby_ibm_db_str2cstr( *bind_data, (long*) &curr->ivalue );
       origlen = curr->ivalue;
 #endif
       if (curr->param_type == SQL_PARAM_OUTPUT || curr->param_type == SQL_PARAM_INPUT_OUTPUT) {
@@ -6363,7 +6370,7 @@ static int _ruby_ibm_db_bind_data( stmt_handle *stmt_res, param_node *curr, VALU
     curr->svalue          =  (SQLCHAR *) RSTRING_PTR(*bind_data);
     curr->ivalue          =  RSTRING_LEN(*bind_data);
 #else
-    curr->svalue          =  (SQLCHAR *) rb_str2cstr(*bind_data, (long*) &curr->ivalue);
+    curr->svalue          =  (SQLCHAR *) ruby_ibm_db_str2cstr(*bind_data, (long*) &curr->ivalue);
 #endif
 
     /* Bind file name string */
@@ -6580,7 +6587,7 @@ void var_assign(char *name, VALUE value) {
   expr      =  RSTRING_PTR(value);
   expr_len  =  RSTRING_LEN(value);
 #else
-  expr      =  rb_str2cstr(value, &expr_len);
+  expr      =  ruby_ibm_db_str2cstr(value, &expr_len);
 #endif
 
   statement =  ALLOC_N(char, strlen(name)+1+expr_len+1);
