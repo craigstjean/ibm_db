@@ -6,7 +6,9 @@ class IBM_DBAdapterTest < Test::Unit::TestCase
   # Fixture
   def driver_lib_path
     drv_path = Pathname.new(File.dirname(__FILE__)).parent + 'lib'
-    drv_path += (RUBY_PLATFORM =~ /mswin32/) ? 'mswin32' : 'linux32'
+    if RUBY_PLATFORM =~ /mswin32/
+      drv_path += 'mswin32'
+    end
     drv_path += 'ibm_db.so'
   end
 

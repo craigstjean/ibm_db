@@ -11,7 +11,9 @@ begin
   unless defined? IBM_DB
     # find IBM_DB driver path relative init.rb
     drv_path = Pathname.new(File.dirname(__FILE__)) + 'lib'
-    drv_path += (RUBY_PLATFORM =~ /mswin32/) ? 'mswin32' : 'linux32'
+    if RUBY_PLATFORM =~ /mswin32/
+      drv_path += 'mswin32'
+    end
     puts ".. Locate IBM_DB Ruby driver path: #{drv_path}"
     drv_lib = drv_path + 'ibm_db.so'
     require "#{drv_lib.to_s}"
