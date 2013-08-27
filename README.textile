@@ -21,7 +21,7 @@ h2. Currently not working
 
 h1. About me
 
-I am a senior programmer / architect with a core competencies in Java (primarily) and C# (secondary).
+I am a senior programmer / architect with core competencies in Java (primary) and C# (secondary).
 I have a passion towards development and always enjoy learning new things. My current learning on the side
 agenda includes:
 
@@ -34,8 +34,7 @@ h2. My Ruby and Rails experience
 I played around with Ruby and Rails shortly after Rails became a buzzword, but I never took it anywhere.
 I am currently looking to get into it as I have always enjoyed the Ruby syntax and want to see what else is out there.
 
-I chose to take this on because I primarily use DB2 (I'm not an expert by any means, it's just my prefered RDBMS)
-and I wanted to learn RoR.
+I chose to take this on because I primarily use DB2 (I'm not an expert by any means, it's just my prefered RDBMS) and I wanted to learn RoR.
 
 h1. ibm_db license
 
