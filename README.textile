@@ -4,18 +4,40 @@ This is a fork of ibm_db 2.5.11 (http://rubyforge.org/projects/rubyibm/).
 
 h2. Goals of this fork
 
-The goals of this fork are to:
-
 # Update ibm_db to build with Ruby 1.9.3 / 2.0
 # Support ActiveRecord 4.0 and Rails 4.0
 
-h2. Current Status
+h2. Currently working
 
 * Runs in Ruby 2.0.0p247
-* db:migrate to create a table succeeds
-* *Probably a lot more... late night commit*
+* db:migrate to create a table
+* db:migrate to add columns
+* rails server starts without error
 
-h2. ibm_db license
+h2. Currently not working
+
+* DEPRECATION WARNING: the object returned from `select_all` must respond to `column_types`.
+* More?
+
+h1. About me
+
+I am a senior programmer / architect with a core competencies in Java (primarily) and C# (secondary).
+I have a passion towards development and always enjoy learning new things. My current learning on the side
+agenda includes:
+
+* Learning Elixir (elixir-lang.org)
+* Learning C++11 with a focus on TDD
+* Anything else
+
+h2. My Ruby and Rails experience
+
+I played around with Ruby and Rails shortly after Rails became a buzzword, but I never took it anywhere.
+I am currently looking to get into it as I have always enjoyed the Ruby syntax and want to see what else is out there.
+
+I chose to take this on because I primarily use DB2 (I'm not an expert by any means, it's just my prefered RDBMS)
+and I wanted to learn RoR.
+
+h1. ibm_db license
 
 The original ibm_db LICENSE is as follows:
 
