@@ -19,8 +19,8 @@ SPEC = Gem::Specification.new do |spec|
   spec.homepage = 'http://rubyforge.org/projects/rubyibm/'
   spec.rubyforge_project = 'rubyibm'
   spec.required_ruby_version = '>= 1.8.6'
-  spec.add_dependency('activerecord', '>= 1.15.1')
-  spec.requirements << 'ActiveRecord, at least 1.15.1'
+  spec.add_dependency('activerecord', '>= 4.0.0')
+  spec.requirements << 'ActiveRecord, at least 4.0.0'
 
   candidates = Dir.glob("**/*")
   spec.files = candidates.delete_if do |item|
