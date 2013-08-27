@@ -400,7 +400,7 @@ module ActiveRecord
       # the DEFAULT option for the native XML datatype
       def column(name, type, options ={})
         # construct a column definition where @base is adaptor instance
-        column = ColumnDefinition.new(@base, name, type)
+        column = ColumnDefinition.new(name, type)
 
         # DB2 does not accept DEFAULT NULL option for XML
         # for table create, but does accept nullable option
@@ -426,12 +426,12 @@ module ActiveRecord
         # append column's limit option and yield native limits
         if options[:limit]
           column.limit   = options[:limit]
-        elsif @base.native_database_types[type.to_sym]
-          column.limit   = @base.native_database_types[type.to_sym][:limit] if @base.native_database_types[type.to_sym].has_key? :limit
+        elsif @native[type.to_sym]
+          column.limit   = @native[type.to_sym][:limit] if @native[type.to_sym].has_key? :limit
         end
 
-        unless @columns.include? column
-          @columns << column 
+        unless @columns_hash.include? column.name
+          @columns_hash[column.name] = column
         end
         return self
       end
@@ -524,6 +524,8 @@ module ActiveRecord
             case server_info.DBMS_NAME
               when /DB2\//i             # DB2 for Linux, Unix and Windows (LUW)
                 case server_info.DBMS_VER
+                  when /10.*/i           # DB2 Version 10 (?)
+                    @servertype = IBM_DB2_LUW_COBRA.new(self)
                   when /09.07/i          # DB2 Version 9.7 (Cobra)
                     @servertype = IBM_DB2_LUW_COBRA.new(self)
                   else                  # DB2 Version 9.5 or below
