@@ -9,6 +9,12 @@ The goals of this fork are to:
 # Update ibm_db to build with Ruby 1.9.3 / 2.0
 # Support ActiveRecord 4.0 and Rails 4.0
 
+h2. Current Status
+
+* Runs in Ruby 2.0.0p247
+* db:migrate to create a table succeeds
+* *Probably a lot more... late night commit*
+
 h2. ibm_db license
 
 The original ibm_db LICENSE is as follows:
