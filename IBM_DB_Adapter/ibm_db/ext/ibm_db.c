@@ -232,6 +232,7 @@ void Init_ibm_db(void) {
   rb_define_module_function(mDB, "next_result", ibm_db_next_result, -1);
   rb_define_module_function(mDB, "num_fields", ibm_db_num_fields, -1);
   rb_define_module_function(mDB, "num_rows", ibm_db_num_rows, -1);
+  rb_define_module_function(mDB, "resultCols", ibm_db_result_cols, -1);
   rb_define_module_function(mDB, "field_name", ibm_db_field_name, -1);
   rb_define_module_function(mDB, "field_display_size", ibm_db_field_display_size, -1);
   rb_define_module_function(mDB, "field_num", ibm_db_field_num, -1);
@@ -9970,6 +9971,101 @@ VALUE ibm_db_fetch_row(int argc, VALUE *argv, VALUE self)
   }
 
   return ret_val;
+}
+
+/* */
+/*
+ *IBM_DB.resultCols --  Returns an array of column names in a result set
+ *
+ * ===Description
+ * array IBM_DB.resultCols ( resource stmt )
+ *
+ * Returns an array of column names in a result set.
+ *
+ * ===Parameters
+ * stmt
+ *     A valid stmt resource containing a result set.
+ *
+ * ===Return Values
+ *
+ * Returns an array of column names in the result set. Raises exception on Error.
+ * 
+ */
+VALUE ibm_db_result_cols(int argc, VALUE *argv, VALUE self) {
+  VALUE stmt             =  Qnil;
+  VALUE ret_val          =  Qnil;
+
+  VALUE  error           =  Qnil;
+  VALUE  colName         =  Qnil;
+  VALUE  return_value    =  Qnil;
+
+  stmt_handle *stmt_res  =  NULL;
+
+  int index              = 0;
+
+  rb_scan_args(argc, argv, "1", &stmt);
+
+  if (!NIL_P(stmt)) {
+    Data_Get_Struct(stmt, stmt_handle, stmt_res);
+  } else {
+    rb_warn("Invalid statement resource specified");
+    return Qnil;
+  }
+
+  if ( stmt_res->column_info == NULL ) {
+    if (_ruby_ibm_db_get_result_set_info(stmt_res)<0) {
+      if( stmt_res != NULL && stmt_res->ruby_stmt_err_msg != NULL ) {
+#ifdef UNICODE_SUPPORT_VERSION
+        error = rb_str_concat( _ruby_ibm_db_export_char_to_utf8_rstr("Column information cannot be retrieved: "),
+                           _ruby_ibm_db_export_sqlwchar_to_utf8_rstr(stmt_res->ruby_stmt_err_msg,
+                                     stmt_res->ruby_stmt_err_msg_len)
+                         );
+#else
+        error = rb_str_cat2(rb_str_new2("Column information cannot be retrieved: "), stmt_res->ruby_stmt_err_msg );
+#endif
+      } else {
+#ifdef UNICODE_SUPPORT_VERSION
+        error = _ruby_ibm_db_export_char_to_utf8_rstr("Column information cannot be retrieved: <error message could not be retrieved>");
+#else
+        error = rb_str_new2("Column information cannot be retrieved: <error message could not be retrieved>");
+#endif
+      }
+      rb_throw( RSTRING_PTR(error), Qnil );
+    }
+  }
+
+  return_value = rb_ary_new();
+
+  for (index=0; index<stmt_res->num_columns; index++) {
+        switch(stmt_res->s_case_mode) {
+      case CASE_LOWER:
+#ifdef UNICODE_SUPPORT_VERSION
+        strtolower((char*)stmt_res->column_info[index].name, stmt_res->column_info[index].name_length * sizeof(SQLWCHAR));
+#else
+        strtolower((char*)stmt_res->column_info[index].name, strlen((char*)stmt_res->column_info[index].name));
+#endif
+        break;
+      case CASE_UPPER:
+#ifdef UNICODE_SUPPORT_VERSION
+        strtoupper((char*)stmt_res->column_info[index].name, stmt_res->column_info[index].name_length * sizeof(SQLWCHAR) );
+#else
+        strtoupper((char*)stmt_res->column_info[index].name, strlen((char*)stmt_res->column_info[index].name));
+#endif
+        break;
+      case CASE_NATURAL:
+      default:
+        break;
+    }
+#ifdef UNICODE_SUPPORT_VERSION
+    colName = _ruby_ibm_db_export_sqlwchar_to_utf8_rstr(stmt_res->column_info[index].name, stmt_res->column_info[index].name_length * sizeof(SQLWCHAR) );
+#else
+    colName = rb_str_new2((char*)stmt_res->column_info[index].name);
+#endif
+
+    rb_ary_store(return_value, index, colName);
+  }
+
+  return return_value;
 }
 /*  */
 

@@ -9,8 +9,54 @@
 # +----------------------------------------------------------------------+
 
 require 'active_record/connection_adapters/abstract_adapter'
+require 'arel/visitors/bind_visitor'
 
 module ActiveRecord
+  class Relation
+    def insert(values)
+      primary_key_value = nil
+
+      if primary_key && Hash === values
+        primary_key_value = values[values.keys.find { |k|
+          k.name == primary_key
+        }]
+
+        if !primary_key_value && connection.prefetch_primary_key?(klass.table_name)
+          primary_key_value = connection.next_sequence_value(klass.sequence_name)
+          values[klass.arel_table[klass.primary_key]] = primary_key_value
+        end
+      end
+
+      im = arel.create_insert
+      im.into @table
+
+      conn = @klass.connection
+
+      substitutes = values.sort_by { |arel_attr,_| arel_attr.name }
+      binds       = substitutes.map do |arel_attr, value|
+        [@klass.columns_hash[arel_attr.name], value]
+      end
+
+      substitutes.each_with_index do |tuple, i|
+        tuple[1] = conn.substitute_at(binds[i][0], i)
+      end
+
+      if values.empty? # empty insert
+        im.values = Arel.sql(connection.empty_insert_statement_value(klass.primary_key))
+      else
+        im.insert substitutes
+      end
+
+      conn.insert(
+        im,
+        'SQL',
+        primary_key,
+        primary_key_value,
+        nil,
+        binds)
+    end
+  end
+
   class Base
     # Method required to handle LOBs and XML fields. 
     # An after save callback checks if a marker has been inserted through
@@ -219,6 +265,11 @@ module ActiveRecord
   end # class Base
 
   module ConnectionAdapters
+    module SchemaStatements
+      def create_table_definition(name, temporary, options)
+        TableDefinition.new self, name, temporary, options
+      end
+    end
     class IBM_DBColumn < Column
 
       # Casts value (which is a String) to an appropriate instance
@@ -343,7 +394,20 @@ module ActiveRecord
     end
 
     class TableDefinition
-      
+
+      def initialize(base, name=nil, temporary=nil, options=nil)
+        @columns_hash = {}
+        @indexes = {}
+        @base = base
+        @temporary = temporary
+        @options = options
+        @name = name
+      end
+
+      def native
+        @base.native_database_types
+      end
+ 
       #Method to parse the passed arguments and create the ColumnDefinition object of the specified type
       def ibm_parse_column_attributes_args(type, *args)
         options = {}
@@ -400,6 +464,7 @@ module ActiveRecord
       # the DEFAULT option for the native XML datatype
       def column(name, type, options ={})
         # construct a column definition where @base is adaptor instance
+        #column = ColumnDefinition.new(@base, name, type)
         column = ColumnDefinition.new(name, type)
 
         # DB2 does not accept DEFAULT NULL option for XML
@@ -426,13 +491,16 @@ module ActiveRecord
         # append column's limit option and yield native limits
         if options[:limit]
           column.limit   = options[:limit]
-        elsif @native[type.to_sym]
-          column.limit   = @native[type.to_sym][:limit] if @native[type.to_sym].has_key? :limit
+        elsif @base.native_database_types[type.to_sym]
+          column.limit   = @base.native_database_types[type.to_sym][:limit] if @base.native_database_types[type.to_sym].has_key? :limit
         end
 
-        unless @columns_hash.include? column.name
-          @columns_hash[column.name] = column
+        unless @columns.nil? or @columns.include? column
+          @columns << column 
         end
+
+        @columns_hash[name] = column
+
         return self
       end
     end
@@ -476,6 +544,10 @@ module ActiveRecord
       # Name of the adapter
       def adapter_name
         'IBM_DB'
+      end
+
+      class BindSubstitution < Arel::Visitors::IBM_DB # :nodoc:
+          include Arel::Visitors::BindVisitor
       end
 
       def initialize(connection, logger, config, conn_options)
@@ -524,8 +596,6 @@ module ActiveRecord
             case server_info.DBMS_NAME
               when /DB2\//i             # DB2 for Linux, Unix and Windows (LUW)
                 case server_info.DBMS_VER
-                  when /10.*/i           # DB2 Version 10 (?)
-                    @servertype = IBM_DB2_LUW_COBRA.new(self)
                   when /09.07/i          # DB2 Version 9.7 (Cobra)
                     @servertype = IBM_DB2_LUW_COBRA.new(self)
                   else                  # DB2 Version 9.5 or below
@@ -867,11 +937,14 @@ module ActiveRecord
           stmt = exec_query(sql, name, binds)
         end
 
+        cols = IBM_DB.resultCols(stmt)
+
         if( stmt ) 
           results = fetch_data(stmt)
         end
 
-        return results
+        #return results
+        return ActiveRecord::Result.new(cols, results)
       end
 
       #Returns an array of arrays containing the field values.
@@ -908,11 +981,11 @@ module ActiveRecord
 
       # Returns a record hash with the column names as keys and column values
       # as values.
-      def select_one(sql, name = nil)
+      #def select_one(sql, name = nil)
         # Gets the first hash from the array of hashes returned by
         # select_all
-        select_all(sql,name).first
-      end
+      #  select_all(sql,name).first
+      #end
 
       #inserts values from fixtures
       #overridden to handle LOB's fixture insertion, as, in normal inserts callbacks are triggered but during fixture insertion callbacks are not triggered
@@ -950,10 +1023,11 @@ module ActiveRecord
                     col.type.to_sym == :binary 
             #  Add a '?' for the parameter or a NULL if the value is nil or empty 
             # (except for a CLOB field where '' can be a value)
-             insert_values << item.at(1)
+             insert_values << quote_value_for_pstmt(item.at(1))
              params << '?'
           else
-            insert_values << quote(item.at(1),col)
+            item.at(1).class
+            insert_values << quote_value_for_pstmt(item.at(1),col)
             params << '?'
           end 
         end
@@ -978,6 +1052,10 @@ module ActiveRecord
             IBM_DB.free_stmt(stmt) if stmt
           end
         end
+      end
+
+      def empty_insert_statement_value(pkey)
+        "(#{pkey}) VALUES (DEFAULT)"
       end
 
       # Perform an insert and returns the last ID generated.
@@ -1933,7 +2011,7 @@ To remove the column, the table must be dropped and recreated without the #{colu
         # an hash for each single record.
         # The loop stops when there aren't any more valid records to fetch
         begin
-          while single_hash = IBM_DB.fetch_assoc(stmt)
+          while single_hash = IBM_DB.fetch_array(stmt)
             # Add the record to the +results+ array
             results <<  single_hash
           end

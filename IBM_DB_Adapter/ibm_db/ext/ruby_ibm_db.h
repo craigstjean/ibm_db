@@ -171,6 +171,7 @@ VALUE ibm_db_stmt_error(int argc, VALUE *argv, VALUE self);
 VALUE ibm_db_next_result(int argc, VALUE *argv, VALUE self);
 VALUE ibm_db_num_fields(int argc, VALUE *argv, VALUE self);
 VALUE ibm_db_num_rows(int argc, VALUE *argv, VALUE self);
+VALUE ibm_db_result_cols(int argc, VALUE *argv, VALUE self);
 VALUE ibm_db_field_name(int argc, VALUE *argv, VALUE self);
 VALUE ibm_db_field_display_size(int argc, VALUE *argv, VALUE self);
 VALUE ibm_db_field_num(int argc, VALUE *argv, VALUE self);
